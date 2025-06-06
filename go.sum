@@ -1,0 +1,12 @@
+github.com/aniagut/msc-bbs v1.0.7 h1:fskB8d2HlWBE9M1+QycazrVF/HMW9DZbckhXhh9MCBQ=
+github.com/aniagut/msc-bbs v1.0.7/go.mod h1:BZTOpqfsXA3MZXO9Sh2At6D7lx5d+vLD9+xAXUmMWYk=
+github.com/aniagut/msc-bbs-anonymous-credentials v1.0.1 h1:T5R8pBz3VhGVMNnngffGYm0/JMG0AKpljk81amPoXe8=
+github.com/aniagut/msc-bbs-anonymous-credentials v1.0.1/go.mod h1:iqvI8t+ihDVW4+B1PVkCp7oDGkJl/7noasn4tTo+s3o=
+github.com/aniagut/msc-bbs-plus-plus v1.0.3 h1:F2bapx9WYeVtyzj/lUz0RQk4sqgRQCtolLJp4EcZG+Y=
+github.com/aniagut/msc-bbs-plus-plus v1.0.3/go.mod h1:aY4bNK8SpZuwKSQ5KYa7dQP34BidQKeoQ+QarfGPv4o=
+github.com/cloudflare/circl v1.6.2-0.20250604230827-acaa79c563ce h1:B7erP/pgMSIJmN7fP7XdM6XER+AxycCq5N7cSff/u7o=
+github.com/cloudflare/circl v1.6.2-0.20250604230827-acaa79c563ce/go.mod h1:uddAzsPgqdMAYatqJ0lsjX1oECcQLIlRpzZh3pJrofs=
+golang.org/x/crypto v0.11.1-0.20230711161743-2e82bdd1719d h1:LiA25/KWKuXfIq5pMIBq1s5hz3HQxhJJSu/SUGlD+SM=
+golang.org/x/crypto v0.11.1-0.20230711161743-2e82bdd1719d/go.mod h1:xgJhtzW8F9jGdVFWZESrid1U1bjeNy4zgy5cRr/CIio=
+golang.org/x/sys v0.10.0 h1:SqMFp9UcQJZa+pmYuAKjd9xq1f0j5rLcDIk0mj4qAsA=
+golang.org/x/sys v0.10.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=

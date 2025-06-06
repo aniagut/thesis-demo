@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Anonymous Credentials Demo</title>
+  <style>
+    body   { font-family: sans-serif; margin: 1rem; }
+    h2     { margin-top: 1.5rem; }
+    label  { display: inline-block; width: 150px; vertical-align: top; }
+    textarea { width: 100%; font-family: monospace; white-space: pre; overflow-x: auto; }
+    input, button { margin-bottom: 0.5rem; }
+    .error { color: #cc0000; }
+    .section { border: 1px solid #ddd; padding: 1rem; margin-bottom: 1rem; }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="/group/">Group Signatures</a> |
+    <a href="/cred/">Anonymous Credentials</a>
+  </nav>
+  <hr />
+  <h1>Anonymous Credentials Demo</h1>
+
+  <!-- 1) Setup -->
+  <div class="section" id="cred-setup-sec">
+    <h2>1) Setup</h2>
+    <div>
+      <label for="setup-l"># of Generators (ℓ):</label>
+      <input id="setup-l" type="number" value="5" min="1" style="width: 60px;" />
+    </div>
+    <button id="setup-btn">Run Setup</button>
+    <div id="setup-result" class="error"></div>
+    <p><strong>Public Parameters (JSON):</strong></p>
+    <textarea id="setup-output" rows="5" readonly></textarea>
+  </div>
+
+  <!-- 2) Issue -->
+  <div class="section" id="cred-issue-sec">
+    <h2>2) Issue Credential</h2>
+    <p>Enter a comma‐separated list of ℓ attributes (e.g. <code>name,surname,age,address,school</code>).</p>
+    <div>
+      <label for="issue-attrs">Attributes:</label>
+      <input id="issue-attrs" type="text" value="Alice, Smith, 30, New York, New York University" style="width:300px;" />
+    </div>
+    <button id="issue-btn">Issue Credential</button>
+    <div id="issue-result" class="error"></div>
+    <p><strong>Credential Signature (JSON):</strong></p>
+    <textarea id="issue-output" rows="5" readonly></textarea>
+  </div>
+
+  <!-- 3) Presentation -->
+  <div class="section" id="cred-present-sec">
+    <h2>3) Presentation</h2>
+    <p>Enter the same attribute list as issued, then specify which indices to reveal, and a nonce.</p>
+    <div>
+      <label for="present-attrs">Attributes:</label>
+      <input id="present-attrs" type="text" value="a1,a2,a3,a4,a5" style="width:300px;" />
+    </div>
+    <div>
+      <label for="present-revealed">Reveal Indices:</label>
+      <input id="present-revealed" type="text" value="0,4" style="width:100px;" />
+    </div>
+    <div>
+      <label for="present-nonce">Nonce (raw string):</label>
+      <input id="present-nonce" type="text" value="demo_nonce" style="width:200px;" />
+    </div>
+    <button id="present-btn">Create Presentation Proof</button>
+    <div id="present-result" class="error"></div>
+    <p><strong>Presentation Proof (JSON):</strong></p>
+    <textarea id="present-output" rows="5" readonly></textarea>
+  </div>
+
+  <!-- 4) Verify -->
+  <div class="section" id="cred-verify-sec">
+    <h2>4) Verify Presentation</h2>
+    <div>
+      <label for="verify-nonce">Nonce (raw string):</label>
+      <input id="verify-nonce" type="text" value="demo_nonce" style="width:200px;" />
+    </div>
+    <div>
+      <label for="verify-revealed-attrs">Revealed Attributes:</label>
+      <input id="verify-revealed-attrs" type="text" value="a1,a5" style="width:200px;" />
+    </div>
+    <div>
+      <label for="verify-revealed-idx">Revealed Indices:</label>
+      <input id="verify-revealed-idx" type="text" value="0,4" style="width:100px;" />
+    </div>
+    <p>Paste the JSON proof from “Presentation Proof” above:</p>
+    <textarea id="verify-proof" rows="5"></textarea><br/>
+    <button id="verify-btn">Verify Presentation</button>
+    <div id="verify-result" class="error"></div>
+  </div>
+
+<script>
+  // Utility to set and clear error messages
+  function showError(id, msg) {
+    const el = document.getElementById(id);
+    el.innerText = msg;
+    el.classList.add('error');
+  }
+  function clearError(id) {
+    const el = document.getElementById(id);
+    el.innerText = '';
+    el.classList.remove('error');
+  }
+
+  // 1) Setup
+  document.getElementById('setup-btn').onclick = async () => {
+    clearError('setup-result');
+    document.getElementById('setup-output').value = '';
+    const l = document.getElementById('setup-l').value;
+    try {
+      const resp = await fetch(`/cred/setup?l=${encodeURIComponent(l)}`);
+      if (!resp.ok) {
+        const text = await resp.text();
+        showError('setup-result', 'Error: ' + text);
+        return;
+      }
+      const pp = await resp.json();
+      document.getElementById('setup-output').value = JSON.stringify(pp, null, 2);
+    } catch (e) {
+      showError('setup-result', 'Fetch error: ' + e.message);
+    }
+  };
+
+  // 2) Issue
+  document.getElementById('issue-btn').onclick = async () => {
+    clearError('issue-result');
+    document.getElementById('issue-output').value = '';
+    const raw = document.getElementById('issue-attrs').value.trim();
+    const attrs = raw.split(',').map(s => s.trim());
+    try {
+      const resp = await fetch('/cred/issue', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({attributes: attrs})
+      });
+      if (!resp.ok) {
+        const text = await resp.text();
+        showError('issue-result', 'Error: ' + text);
+        return;
+      }
+      const sig = await resp.json();
+      document.getElementById('issue-output').value = JSON.stringify(sig, null, 2);
+    } catch (e) {
+      showError('issue-result', 'Fetch error: ' + e.message);
+    }
+  };
+
+  // 3) Presentation
+  document.getElementById('present-btn').onclick = async () => {
+    clearError('present-result');
+    document.getElementById('present-output').value = '';
+    const rawAttrs = document.getElementById('present-attrs').value.trim();
+    const attrs = rawAttrs.split(',').map(s => s.trim());
+    const rawIdx = document.getElementById('present-revealed').value.trim();
+    const idxs = rawIdx.split(',').map(s => parseInt(s.trim(), 10));
+    const nonce = document.getElementById('present-nonce').value;
+
+    try {
+      const resp = await fetch('/cred/present', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          attributes: attrs,
+          revealedIndices: idxs,
+          nonce: nonce
+        })
+      });
+      if (!resp.ok) {
+        const text = await resp.text();
+        showError('present-result', 'Error: ' + text);
+        return;
+      }
+      const proof = await resp.json();
+      document.getElementById('present-output').value = JSON.stringify(proof, null, 2);
+    } catch (e) {
+      showError('present-result', 'Fetch error: ' + e.message);
+    }
+  };
+
+  // 4) Verify
+  document.getElementById('verify-btn').onclick = async () => {
+    clearError('verify-result');
+    const nonce = document.getElementById('verify-nonce').value;
+    const rawAttrs = document.getElementById('verify-revealed-attrs').value.trim();
+    const revAttrs = rawAttrs.split(',').map(s => s.trim());
+    const rawIdx = document.getElementById('verify-revealed-idx').value.trim();
+    const revIdxs = rawIdx.split(',').map(s => parseInt(s.trim(), 10));
+
+    let proofObj;
+    try {
+      proofObj = JSON.parse(document.getElementById('verify-proof').value);
+    } catch {
+      showError('verify-result', 'Invalid JSON proof');
+      return;
+    }
+
+    try {
+      const resp = await fetch('/cred/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          proof:              proofObj,
+          nonce:              nonce,
+          revealedAttributes: revAttrs,
+          revealedIndices:    revIdxs,
+        })
+      });
+      if (!resp.ok) {
+        const text = await resp.text();
+        showError('verify-result', 'Error: ' + text);
+        return;
+      }
+      const text = await resp.text();
+      document.getElementById('verify-result').innerText = text;
+    } catch (e) {
+      showError('verify-result', 'Fetch error: ' + e.message);
+    }
+  };
+</script>
+</body>
+</html>

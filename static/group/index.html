@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Group Signature Schema Demo</title>
+  <style>
+    body { font-family: sans-serif; margin: 1rem; }
+    h2 { margin-top: 1.5rem; }
+    label { display: inline-block; width: 120px; }
+    textarea { width: 100%; }
+    pre { background: #f4f4f4; padding: 0.5rem; }
+    .result { margin-top: 0.5rem; color: #003366; }
+    .error  { color: #cc0000; }
+    .section { border: 1px solid #ddd; padding: 1rem; margin-bottom: 1rem; }
+  </style>
+</head>
+<body>
+  <nav>
+  <a href="/group/">Group Signatures</a> |
+  <a href="/cred/">Anonymous Credentials</a>
+</nav>
+<hr />
+  <h1>Group Signature Schema Demo</h1>
+
+  <!-- 1) KeyGen Section -->
+  <div class="sec" id="keygen-sec">
+    <h2>1) KeyGen (Manager Only)</h2>
+    <div>
+      <label for="keygen-size">Group size:</label>
+      <input id="keygen-size" type="number" value="5" min="1" style="width:60px;" />
+    </div>
+    <div>
+      <label for="keygen-pwd">Manager Pwd:</label>
+      <input id="keygen-pwd" type="password" style="width:150px;" />
+    </div>
+    <button id="keygen-btn">Generate Group</button>
+    <div id="keygen-result" class="error"></div>
+  </div>
+
+  <!-- 2) Sign Section -->
+  <div class="sec" id="sign-sec">
+    <h2>2) Sign (User Only)</h2>
+    <div>
+      <label for="sign-index">Signer Index:</label>
+      <input id="sign-index" type="number" value="1" min="1" style="width:50px;" />
+    </div>
+    <div>
+      <label for="sign-pwd">User Pwd:</label>
+      <input id="sign-pwd" type="password" style="width:150px;" />
+    </div>
+    <div>
+      <label for="sign-msg">Message:</label>
+      <input id="sign-msg" type="text" value="Hello" style="width:300px;" />
+    </div>
+    <button id="sign-btn">Sign Message</button>
+    <p><strong>Signature JSON / Error:</strong></p>
+    <textarea id="sign-output" rows="5" readonly></textarea>
+  </div>
+
+  <!-- 3) Verify Section -->
+  <div class="sec" id="verify-sec">
+    <h2>3) Verify (Anyone)</h2>
+    <div>
+      <label for="verify-msg">Message:</label>
+      <input id="verify-msg" type="text" value="Hello" style="width:300px;" />
+    </div>
+    <div>
+      <label for="verify-sig">Signature JSON:</label><br/>
+      <textarea id="verify-sig" rows="5"></textarea>
+    </div>
+    <button id="verify-btn">Verify Signature</button>
+    <div id="verify-result" class="error"></div>
+  </div>
+
+  <!-- 4) Open Section -->
+  <div class="section" id="open‐section">  <div class="sec" id="open-sec">
+    <h2>4) Open (Manager Only)</h2>
+    <div>
+      <label for="open-msg">Message:</label>
+      <input id="open-msg" type="text" value="Hello" style="width:300px;" />
+    </div>
+    <div>
+      <label for="open-sig">Signature JSON:</label><br/>
+      <textarea id="open-sig" rows="5"></textarea>
+    </div>
+    <div>
+      <label for="open-pwd">Manager Pwd:</label>
+      <input id="open-pwd" type="password" style="width:150px;" />
+    </div>
+    <button id="open-btn">Open Signature</button>
+    <div id="open-result" class="error"></div>
+  </div>
+
+  <script>
+    // Utility to display errors
+    function showError(elemId, text) {
+      const el = document.getElementById(elemId);
+      el.innerText = text;
+      el.classList.add('error');
+    }
+    function clearError(elemId) {
+      const el = document.getElementById(elemId);
+      el.innerText = '';
+      el.classList.remove('error');
+    }
+
+    // 1) KeyGen
+    document.getElementById('keygen-btn').onclick = async () => {
+      clearError('keygen-result');
+        const size = document.getElementById('keygen-size').value;
+        const pwd  = document.getElementById('keygen-pwd').value;
+        const out  = document.getElementById('keygen-result');
+        out.innerText = ''; out.classList.remove('error');
+        document.getElementById('keygen-pwd').value = ''; // Clear password field after use
+        try {
+            const resp = await fetch(`/group/keygen?size=${encodeURIComponent(size)}&mgrpwd=${encodeURIComponent(pwd)}`);
+            if (!resp.ok) {
+            const text = await resp.text();
+            out.classList.add('error');
+            out.innerText = 'Error: ' + text;
+            return;
+            }
+            const text = await resp.text();
+            out.innerText = text;
+        } catch (e) {
+            out.classList.add('error');
+            out.innerText = 'Fetch error: ' + e.message;
+        }
+    };
+
+    // 2) Sign
+    document.getElementById('sign-btn').onclick = async () => {
+        const idx = document.getElementById('sign-index').value;
+        const pwd = document.getElementById('sign-pwd').value;
+        const msg = document.getElementById('sign-msg').value;
+        const out = document.getElementById('sign-output');
+        out.value = ''; out.classList.remove('error');
+        document.getElementById('sign-pwd').value = ''; // Clear password field after use
+
+        try {
+            const url = `/group/sign?signer=${encodeURIComponent(idx)}&upwd=${encodeURIComponent(pwd)}&msg=${encodeURIComponent(msg)}`;
+            const resp = await fetch(url);
+            if (!resp.ok) {
+            const text = await resp.text();
+            out.classList.add('error');
+            out.value = 'Error: ' + text;
+            return;
+            }
+            const sigJson = await resp.json();
+            out.value = JSON.stringify(sigJson, null, 2);
+        } catch (e) {
+            out.classList.add('error');
+            out.value = 'Fetch error: ' + e.message;
+        }
+    };
+
+    // 3) Verify
+    document.getElementById('verify-btn').onclick = async () => {
+        const msg   = document.getElementById('verify-msg').value;
+        const out   = document.getElementById('verify-result');
+        let   sigObj;
+        out.innerText = ''; out.classList.remove('error');
+
+        try {
+            sigObj = JSON.parse(document.getElementById('verify-sig').value);
+        } catch {
+            out.classList.add('error');
+            out.innerText = 'Invalid JSON';
+            return;
+        }
+
+        try {
+            const resp = await fetch(`/group/verify?msg=${encodeURIComponent(msg)}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(sigObj)
+            });
+            if (!resp.ok) {
+            const text = await resp.text();
+            out.classList.add('error');
+            out.innerText = 'Error: ' + text;
+            return;
+            }
+            const text = await resp.text();
+            out.innerText = text;
+        } catch (e) {
+            out.classList.add('error');
+            out.innerText = 'Fetch error: ' + e.message;
+        }
+    };
+
+    // 4) Open
+    document.getElementById('open-btn').onclick = async () => {
+        const msg   = document.getElementById('open-msg').value;
+        const pwd   = document.getElementById('open-pwd').value;
+        const out   = document.getElementById('open-result');
+        document.getElementById('open-pwd').value = ''; // Clear password field after use
+        let   sigObj;
+        out.innerText = ''; out.classList.remove('error');
+
+        try {
+            sigObj = JSON.parse(document.getElementById('open-sig').value);
+        } catch {
+            out.classList.add('error');
+            out.innerText = 'Invalid JSON';
+            return;
+        }
+
+        try {
+            const resp = await fetch(`/group/open?msg=${encodeURIComponent(msg)}&mgrpwd=${encodeURIComponent(pwd)}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(sigObj)
+            });
+            if (!resp.ok) {
+            const text = await resp.text();
+            out.classList.add('error');
+            out.innerText = 'Error: ' + text;
+            return;
+            }
+            const text = await resp.text();
+            out.innerText = text;
+        } catch (e) {
+            out.classList.add('error');
+            out.innerText = 'Fetch error: ' + e.message;
+        }
+    };
+  </script>
+</body>
+</html>

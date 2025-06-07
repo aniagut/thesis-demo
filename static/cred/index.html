@@ -28,6 +28,10 @@
       <label for="setup-l"># of Generators (ℓ):</label>
       <input id="setup-l" type="number" value="5" min="1" style="width: 60px;" />
     </div>
+    <div>
+      <label for="setup-pwd">Manager Pwd:</label>
+      <input id="setup-pwd" type="password" style="width:150px;" />
+    </div>
     <button id="setup-btn">Run Setup</button>
     <div id="setup-result" class="error"></div>
     <p><strong>Public Parameters (JSON):</strong></p>
@@ -37,6 +41,14 @@
   <!-- 2) Issue -->
   <div class="section" id="cred-issue-sec">
     <h2>2) Issue Credential</h2>
+    <div>
+      <label for="issue-user">User Index:</label>
+      <input id="issue-user" type="number" value="1" min="1" style="width:50px;" />
+    </div>
+    <div>
+      <label for="issue-mngr-pwd">Manager Pwd:</label>
+      <input id="issue-mngr-pwd" type="password" style="width:150px;" />
+    </div>
     <p>Enter a comma‐separated list of ℓ attributes (e.g. <code>name,surname,age,address,school</code>).</p>
     <div>
       <label for="issue-attrs">Attributes:</label>
@@ -51,6 +63,13 @@
   <!-- 3) Presentation -->
   <div class="section" id="cred-present-sec">
     <h2>3) Presentation</h2>
+    <div>
+      <label for="present-user">User Index:</label>
+      <input id="present-user" type="number" value="1" min="1" style="width:50px;" />
+    </div>
+    <div>
+      <label for="present-user-pwd">User Pwd:</label>
+      <input id="present-user-pwd" type="password" style="width:150px;" />
     <p>Enter the same attribute list as issued, then specify which indices to reveal, and a nonce.</p>
     <div>
       <label for="present-attrs">Attributes:</label>
@@ -109,8 +128,10 @@
     clearError('setup-result');
     document.getElementById('setup-output').value = '';
     const l = document.getElementById('setup-l').value;
+    const pwd = document.getElementById('setup-pwd').value.trim();
+    document.getElementById('setup-pwd').value = '';
     try {
-      const resp = await fetch(`/cred/setup?l=${encodeURIComponent(l)}`);
+      const resp = await fetch(`/cred/setup?l=${encodeURIComponent(l)}&mgrpwd=${encodeURIComponent(pwd)}`);
       if (!resp.ok) {
         const text = await resp.text();
         showError('setup-result', 'Error: ' + text);
@@ -127,10 +148,13 @@
   document.getElementById('issue-btn').onclick = async () => {
     clearError('issue-result');
     document.getElementById('issue-output').value = '';
+    const userIdx = document.getElementById('issue-user').value;
+    const mngrPwd = document.getElementById('issue-mngr-pwd').value.trim();
+    document.getElementById('issue-mngr-pwd').value = ''; // Clear password field after use
     const raw = document.getElementById('issue-attrs').value.trim();
     const attrs = raw.split(',').map(s => s.trim());
     try {
-      const resp = await fetch('/cred/issue', {
+      const resp = await fetch(`/cred/issue?user=${encodeURIComponent(userIdx)}&mgrpwd=${encodeURIComponent(mngrPwd)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({attributes: attrs})
@@ -151,6 +175,9 @@
   document.getElementById('present-btn').onclick = async () => {
     clearError('present-result');
     document.getElementById('present-output').value = '';
+    const userIdx = document.getElementById('present-user').value;
+    const userPwd = document.getElementById('present-user-pwd').value.trim();
+    document.getElementById('present-user-pwd').value = ''; // Clear password field after use
     const rawAttrs = document.getElementById('present-attrs').value.trim();
     const attrs = rawAttrs.split(',').map(s => s.trim());
     const rawIdx = document.getElementById('present-revealed').value.trim();
@@ -158,7 +185,7 @@
     const nonce = document.getElementById('present-nonce').value;
 
     try {
-      const resp = await fetch('/cred/present', {
+      const resp = await fetch(`/cred/present?user=${encodeURIComponent(userIdx)}&upwd=${encodeURIComponent(userPwd)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

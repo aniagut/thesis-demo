@@ -386,11 +386,16 @@ func handleOpen(w http.ResponseWriter, r *http.Request) {
 // Global state for the credential demo:
 var (
     credParams    credModels.SetupResult       // holds PublicParameters + SecretKey after Setup()
-    credSignature  credModels.Signature    // holds the issued credential signature
+	userCredentials = map[int]credModels.Signature{}
 )
 
 // handlerCredSetup drives setup.Setup(l) and returns the resulting public parameters as JSON.
 func handleCredSetup(w http.ResponseWriter, r *http.Request) {
+	if !checkManagerAuth(r) {
+        http.Error(w, "Unauthorized", http.StatusUnauthorized)
+        return
+    }
+	
     // Expect: /cred/setup?l=5
     lStr := r.URL.Query().Get("l")
     l, err := strconv.Atoi(lStr)
@@ -438,7 +443,19 @@ func handleCredSetup(w http.ResponseWriter, r *http.Request) {
 // handlerCredIssue drives issue.Issue(attributes, PublicParameters, SecretKey),
 // stores the resulting signature in credSignature, and returns it as JSON.
 func handleCredIssue(w http.ResponseWriter, r *http.Request) {
-    // Expect a JSON body like: {"attributes":["attr1","attr2","attr3"]}
+    if !checkManagerAuth(r) {
+        http.Error(w, "Unauthorized", http.StatusUnauthorized)
+        return
+    }
+
+    // parse user index
+    ui := r.URL.Query().Get("user")
+    idx, err := strconv.Atoi(ui)
+    if err != nil || idx < 1 || idx > len(userPasswords) {
+        http.Error(w, "Missing or invalid `user` parameter", http.StatusBadRequest)
+        return
+    }
+	// Expect a JSON body like: {"attributes":["attr1","attr2","attr3"]}
     var req struct {
         Attributes []string `json:"attributes"`
     }
@@ -456,7 +473,10 @@ func handleCredIssue(w http.ResponseWriter, r *http.Request) {
         http.Error(w, err.Error(), http.StatusInternalServerError)
         return
     }
-    credSignature = sig
+
+	lock.Lock()
+    userCredentials[idx] = sig
+    lock.Unlock()
 
 	// Convert signature fields to base64 strings for JSON
 	aBytes := sig.A.Bytes()
@@ -481,6 +501,16 @@ func handleCredPresent(w http.ResponseWriter, r *http.Request) {
     //   "revealedIndices": [0,4],
     //   "nonce": "random_nonce_base64"
     // }
+	ui := r.URL.Query().Get("user")
+    idx, err := strconv.Atoi(ui)
+    if err != nil || idx < 1 || idx > len(userPasswords) || userCredentials[idx] == (credModels.Signature{}) {
+        http.Error(w, "Missing or invalid `user` parameter", http.StatusBadRequest)
+        return
+    }
+    if !checkUserAuth(r, idx) {
+        http.Error(w, "Unauthorized: invalid user or password", http.StatusUnauthorized)
+        return
+    }
     var req struct {
         Attributes      []string `json:"attributes"`
         RevealedIndices []int    `json:"revealedIndices"`
@@ -494,7 +524,7 @@ func handleCredPresent(w http.ResponseWriter, r *http.Request) {
         http.Error(w, "Public parameters not initialized. Call /cred/setup first", http.StatusBadRequest)
         return
     }
-    if credSignature.A == nil  {
+    if userCredentials[idx].A == nil  {
         http.Error(w, "Credential not issued. Call /cred/issue first", http.StatusBadRequest)
         return
     }
@@ -504,7 +534,7 @@ func handleCredPresent(w http.ResponseWriter, r *http.Request) {
 
     proof, err := presentation.Presentation(
         req.Attributes,
-        credSignature,
+        userCredentials[idx],
         req.RevealedIndices,
         credParams.PublicParameters,
         nonceBytes,

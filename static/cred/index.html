@@ -52,7 +52,7 @@
     <p>Enter a comma‐separated list of ℓ attributes (e.g. <code>name,surname,age,address,school</code>).</p>
     <div>
       <label for="issue-attrs">Attributes:</label>
-      <input id="issue-attrs" type="text" value="Alice, Smith, 30, New York, New York University" style="width:300px;" />
+      <input id="issue-attrs" type="text" value="Alice,Smith,30,New York,New York University" style="width:300px;" />
     </div>
     <button id="issue-btn">Issue Credential</button>
     <div id="issue-result" class="error"></div>
@@ -73,11 +73,11 @@
     <p>Enter the same attribute list as issued, then specify which indices to reveal, and a nonce.</p>
     <div>
       <label for="present-attrs">Attributes:</label>
-      <input id="present-attrs" type="text" value="a1,a2,a3,a4,a5" style="width:300px;" />
+      <input id="present-attrs" type="text" value="Alice,Smith,30,New York, New York University" style="width:300px;" />
     </div>
     <div>
       <label for="present-revealed">Reveal Indices:</label>
-      <input id="present-revealed" type="text" value="0,4" style="width:100px;" />
+      <input id="present-revealed" type="text" value="1,2,3" style="width:100px;" />
     </div>
     <div>
       <label for="present-nonce">Nonce (raw string):</label>
@@ -98,11 +98,11 @@
     </div>
     <div>
       <label for="verify-revealed-attrs">Revealed Attributes:</label>
-      <input id="verify-revealed-attrs" type="text" value="a1,a5" style="width:200px;" />
+      <input id="verify-revealed-attrs" type="text" value="Smith,30,New York" style="width:200px;" />
     </div>
     <div>
       <label for="verify-revealed-idx">Revealed Indices:</label>
-      <input id="verify-revealed-idx" type="text" value="0,4" style="width:100px;" />
+      <input id="verify-revealed-idx" type="text" value="1,2,3" style="width:100px;" />
     </div>
     <p>Paste the JSON proof from “Presentation Proof” above:</p>
     <textarea id="verify-proof" rows="5"></textarea><br/>
